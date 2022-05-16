@@ -1,0 +1,30 @@
+id: 'DocuSign: Unusual Document Download Volume'
+name: 'DocuSign: Unusual Document Download Volume'
+description: This query identifies alerts triggered by DocuSign when an unusual volume
+  of documents have been downloaded by a user. The alert is generated when a user
+  downloads 20 or more documents in an hour and where this volume is greater than
+  normal for the selected user.
+severity: Low
+requiredDataConnectors: []
+queryFrequency: 30m
+queryPeriod: 30m
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+- Exfiltration
+relevantTechniques: []
+query: |-
+  DocuSignMonitor_CL
+  | where object_s == "Alert"
+  | extend account_name = split(user_email_s, "@")[0]
+  | extend upn_suffix = split(user_email_s, "@")[1]
+  | project TimeGenerated, timestamp_t, data_Count_s, data_Avg_s, eventId_g, action_s, user_email_s, account_name, upn_suffix
+entityMappings:
+- entityType: Account
+  fieldMappings:
+  - identifier: UPNSuffix
+    columnName: upn_suffix
+  - identifier: Name
+    columnName: account_name
+version: 1.0.0
+kind: Scheduled

@@ -1,0 +1,396 @@
+{
+    "version": "Notebook/1.0",
+    "items": [
+      {
+        "type": 12,
+        "content": {
+          "version": "NotebookGroup/1.0",
+          "groupType": "editable",
+          "items": [
+            {
+              "type": 9,
+              "content": {
+                "version": "KqlParameterItem/1.0",
+                "parameters": [
+                  {
+                    "id": "b585101e-64de-43a9-a6e2-29fc365019d6",
+                    "version": "KqlParameterItem/1.0",
+                    "name": "timerange",
+                    "label": "Time Range",
+                    "type": 4,
+                    "isGlobal": true,
+                    "value": {
+                      "durationMs": 604800000
+                    },
+                    "typeSettings": {
+                      "selectableValues": [
+                        {
+                          "durationMs": 14400000
+                        },
+                        {
+                          "durationMs": 43200000
+                        },
+                        {
+                          "durationMs": 86400000
+                        },
+                        {
+                          "durationMs": 172800000
+                        },
+                        {
+                          "durationMs": 604800000
+                        },
+                        {
+                          "durationMs": 2592000000
+                        }
+                      ]
+                    },
+                    "timeContext": {
+                      "durationMs": 86400000
+                    }
+                  }
+                ],
+                "style": "pills",
+                "queryType": 0,
+                "resourceType": "microsoft.operationalinsights/workspaces"
+              },
+              "name": "parameters - 0"
+            },
+            {
+              "type": 11,
+              "content": {
+                "version": "LinkItem/1.0",
+                "style": "tabs",
+                "links": [
+                  {
+                    "id": "8f5716d3-d47c-43fa-bf7c-18229dda7c89",
+                    "cellValue": "EventType",
+                    "linkTarget": "parameter",
+                    "linkLabel": "Envelopes",
+                    "subTarget": "Envelopes",
+                    "style": "link"
+                  },
+                  {
+                    "id": "89b2cd6e-cba0-4a50-9c96-ec3ef260c96d",
+                    "cellValue": "EventType",
+                    "linkTarget": "parameter",
+                    "linkLabel": "Documents",
+                    "subTarget": "Documents",
+                    "style": "link"
+                  },
+                  {
+                    "id": "63cbb902-3536-40fe-9b20-130883ef48fa",
+                    "cellValue": "EventType",
+                    "linkTarget": "parameter",
+                    "linkLabel": "Alerts",
+                    "subTarget": "Alerts",
+                    "style": "link"
+                  },
+                  {
+                    "id": "e9b4c5f7-db46-4cb9-9125-e86ca5f90634",
+                    "cellValue": "EventType",
+                    "linkTarget": "parameter",
+                    "linkLabel": "Users",
+                    "subTarget": "Users",
+                    "style": "link"
+                  }
+                ]
+              },
+              "name": "links - 1"
+            }
+          ],
+          "exportParameters": true
+        },
+        "name": "group - 1"
+      },
+      {
+        "type": 12,
+        "content": {
+          "version": "NotebookGroup/1.0",
+          "groupType": "editable",
+          "items": [
+            {
+              "type": 1,
+              "content": {
+                "json": "# Envelope Events"
+              },
+              "name": "text - 0",
+              "styleSettings": {
+                "padding": "5px"
+              }
+            },
+            {
+              "type": 3,
+              "content": {
+                "version": "KqlItem/1.0",
+                "query": "DocuSignMonitor_CL \r\n| where object_s == \"Envelope\"\r\n| summarize count() by bin(timestamp_t, 1h), action_s",
+                "size": 0,
+                "title": "Envelope actions over time",
+                "timeContextFromParameter": "timerange",
+                "queryType": 0,
+                "resourceType": "microsoft.operationalinsights/workspaces",
+                "visualization": "linechart"
+              },
+              "customWidth": "50",
+              "name": "query - 1"
+            },
+            {
+              "type": 3,
+              "content": {
+                "version": "KqlItem/1.0",
+                "query": "DocuSignMonitor_CL \r\n| where object_s == \"Envelope\"\r\n| summarize count() by ipAddressLocation_country_s",
+                "size": 2,
+                "title": "Envelope actions by country",
+                "timeContextFromParameter": "timerange",
+                "queryType": 0,
+                "resourceType": "microsoft.operationalinsights/workspaces",
+                "visualization": "map",
+                "mapSettings": {
+                  "locInfo": "CountryRegion",
+                  "locInfoColumn": "ipAddressLocation_country_s",
+                  "sizeSettings": "count_",
+                  "sizeAggregation": "Sum",
+                  "legendMetric": "count_",
+                  "legendAggregation": "Sum",
+                  "itemColorSettings": {
+                    "nodeColorField": "count_",
+                    "colorAggregation": "Sum",
+                    "type": "heatmap",
+                    "heatmapPalette": "redGreen"
+                  }
+                }
+              },
+              "customWidth": "50",
+              "name": "query - 2"
+            }
+          ]
+        },
+        "conditionalVisibility": {
+          "parameterName": "EventType",
+          "comparison": "isEqualTo",
+          "value": "Envelopes"
+        },
+        "name": "envelopes group",
+        "styleSettings": {
+          "showBorder": true
+        }
+      },
+      {
+        "type": 12,
+        "content": {
+          "version": "NotebookGroup/1.0",
+          "groupType": "editable",
+          "items": [
+            {
+              "type": 1,
+              "content": {
+                "json": "# Document Events"
+              },
+              "name": "text - 0"
+            },
+            {
+              "type": 3,
+              "content": {
+                "version": "KqlItem/1.0",
+                "query": "DocuSignMonitor_CL \r\n| where object_s == \"Document\"\r\n| summarize count() by bin(timestamp_t, 1h), action_s",
+                "size": 0,
+                "title": "Document actions over time",
+                "timeContextFromParameter": "timerange",
+                "queryType": 0,
+                "resourceType": "microsoft.operationalinsights/workspaces",
+                "visualization": "linechart"
+              },
+              "customWidth": "50",
+              "name": "query - 1"
+            },
+            {
+              "type": 3,
+              "content": {
+                "version": "KqlItem/1.0",
+                "query": "DocuSignMonitor_CL \r\n| where object_s == \"Document\"\r\n| where action_s == \"Downloaded\"\r\n| summarize count() by ipAddressLocation_country_s",
+                "size": 2,
+                "title": "Downloaded documents by country",
+                "timeContextFromParameter": "timerange",
+                "queryType": 0,
+                "resourceType": "microsoft.operationalinsights/workspaces",
+                "visualization": "map",
+                "mapSettings": {
+                  "locInfo": "CountryRegion",
+                  "locInfoColumn": "ipAddressLocation_country_s",
+                  "sizeSettings": "count_",
+                  "sizeAggregation": "Sum",
+                  "legendMetric": "count_",
+                  "legendAggregation": "Sum",
+                  "itemColorSettings": {
+                    "nodeColorField": "count_",
+                    "colorAggregation": "Sum",
+                    "type": "heatmap",
+                    "heatmapPalette": "redGreen"
+                  }
+                }
+              },
+              "customWidth": "50",
+              "name": "query - 2"
+            }
+          ]
+        },
+        "conditionalVisibility": {
+          "parameterName": "EventType",
+          "comparison": "isEqualTo",
+          "value": "Documents"
+        },
+        "name": "documents group",
+        "styleSettings": {
+          "showBorder": true
+        }
+      },
+      {
+        "type": 12,
+        "content": {
+          "version": "NotebookGroup/1.0",
+          "groupType": "editable",
+          "items": [
+            {
+              "type": 1,
+              "content": {
+                "json": "# Alerts"
+              },
+              "name": "text - 1"
+            },
+            {
+              "type": 3,
+              "content": {
+                "version": "KqlItem/1.0",
+                "query": "DocuSignMonitor_CL \r\n| where object_s == \"Alert\"\r\n| summarize arg_max(timestamp_t, *) by eventId_g\r\n| summarize count() by bin(timestamp_t, 1h), action_s",
+                "size": 0,
+                "title": "Alerts over time",
+                "timeContextFromParameter": "timerange",
+                "queryType": 0,
+                "resourceType": "microsoft.operationalinsights/workspaces",
+                "visualization": "linechart"
+              },
+              "customWidth": "50",
+              "name": "query - 0"
+            },
+            {
+              "type": 3,
+              "content": {
+                "version": "KqlItem/1.0",
+                "query": "DocuSignMonitor_CL \r\n| where object_s == \"Alert\"\r\n| summarize arg_max(timestamp_t, *) by eventId_g, user_email_s\r\n| summarize count() by user_email_s\r\n| top 10 by count_",
+                "size": 0,
+                "queryType": 0,
+                "resourceType": "microsoft.operationalinsights/workspaces"
+              },
+              "customWidth": "50",
+              "name": "query - 4"
+            }
+          ]
+        },
+        "conditionalVisibility": {
+          "parameterName": "EventType",
+          "comparison": "isEqualTo",
+          "value": "Alerts"
+        },
+        "name": "alerts group",
+        "styleSettings": {
+          "showBorder": true
+        }
+      },
+      {
+        "type": 12,
+        "content": {
+          "version": "NotebookGroup/1.0",
+          "groupType": "editable",
+          "items": [
+            {
+              "type": 1,
+              "content": {
+                "json": "# Users"
+              },
+              "name": "text - 1"
+            },
+            {
+              "type": 9,
+              "content": {
+                "version": "KqlParameterItem/1.0",
+                "parameters": [
+                  {
+                    "id": "51339926-2c0b-4003-a005-37beeaa433e0",
+                    "version": "KqlParameterItem/1.0",
+                    "name": "UPN",
+                    "type": 1,
+                    "description": "Search by User Principal Name",
+                    "value": "",
+                    "timeContext": {
+                      "durationMs": 86400000
+                    }
+                  }
+                ],
+                "style": "pills",
+                "queryType": 0,
+                "resourceType": "microsoft.operationalinsights/workspaces"
+              },
+              "name": "parameters - 1"
+            },
+            {
+              "type": 3,
+              "content": {
+                "version": "KqlItem/1.0",
+                "query": "DocuSignMonitor_CL\r\n| where user_email_s contains \"{UPN}\"\r\n| where object_s == \"Document\" or object_s == \"Envelope\"\r\n| project TimeGenerated, timestamp_t, object_s, action_s, eventId_g\r\n| summarize arg_max(timestamp_t, *) by eventId_g\r\n| summarize count() by bin(TimeGenerated, 1d), action_s",
+                "size": 0,
+                "title": "User Activities over Time",
+                "timeContextFromParameter": "timerange",
+                "queryType": 0,
+                "resourceType": "microsoft.operationalinsights/workspaces",
+                "visualization": "linechart",
+                "chartSettings": {
+                  "showLegend": true,
+                  "showDataPoints": true
+                }
+              },
+              "customWidth": "50",
+              "name": "query - 2"
+            },
+            {
+              "type": 3,
+              "content": {
+                "version": "KqlItem/1.0",
+                "query": "DocuSignMonitor_CL\r\n| where user_email_s contains \"{UPN}\"\r\n| where object_s == \"Alert\"\r\n| summarize arg_max(TimeGenerated, *) by eventId_g\r\n| project TimeGenerated, user_email_s, eventId_g, action_s",
+                "size": 0,
+                "title": "Alerts Generated for User",
+                "timeContextFromParameter": "timerange",
+                "queryType": 0,
+                "resourceType": "microsoft.operationalinsights/workspaces",
+                "gridSettings": {
+                  "sortBy": [
+                    {
+                      "itemKey": "TimeGenerated",
+                      "sortOrder": 1
+                    }
+                  ]
+                },
+                "sortBy": [
+                  {
+                    "itemKey": "TimeGenerated",
+                    "sortOrder": 1
+                  }
+                ]
+              },
+              "customWidth": "50",
+              "name": "query - 3"
+            }
+          ]
+        },
+        "conditionalVisibility": {
+          "parameterName": "EventType",
+          "comparison": "isEqualTo",
+          "value": "Users"
+        },
+        "name": "users group",
+        "styleSettings": {
+          "showBorder": true
+        }
+      }
+    ],
+    "fromTemplateId": "sentinel-UserWorkbook",
+    "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+  }

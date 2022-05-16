@@ -1,0 +1,6 @@
+DocuSignMonitor_CL
+| where object_s == "Alert"
+| where action_s == "TooManyEnvelopesDeleted"
+| extend account_name = split(user_email_s, "@")[0]
+| extend upn_suffix = split(user_email_s, "@")[1]
+| project TimeGenerated, timestamp_t, action_s, user_email_s, account_name, upn_suffix, data_Count_s, data_Avg_s, data_EventIds_s

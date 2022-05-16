@@ -1,0 +1,5 @@
+DocuSignMonitor_CL
+| where object_s == "Alert"
+| extend account_name = split(user_email_s, "@")[0]
+| extend upn_suffix = split(user_email_s, "@")[1]
+| project TimeGenerated, timestamp_t, data_Count_s, data_Avg_s, eventId_g, action_s, user_email_s, account_name, upn_suffix

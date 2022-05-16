@@ -1,0 +1,32 @@
+id: 'DocuSign: Unusual volume of envelopes deleted'
+name: 'DocuSign: Unusual volume of envelopes deleted'
+description: 'This query identifies alerts triggered by DocuSign when an unusual volume
+  of documents have been deleted by a user. The alert is generated when a user deletes
+  20 or more documents in an hour and where this volume is greater than normal for
+  the selected user.
+  '
+severity: Medium
+requiredDataConnectors: []
+queryFrequency: 30m
+queryPeriod: 30m
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+- Impact
+relevantTechniques: []
+query: |-
+  DocuSignMonitor_CL
+  | where object_s == "Alert"
+  | where action_s == "TooManyEnvelopesDeleted"
+  | extend account_name = split(user_email_s, "@")[0]
+  | extend upn_suffix = split(user_email_s, "@")[1]
+  | project TimeGenerated, timestamp_t, action_s, user_email_s, account_name, upn_suffix, data_Count_s, data_Avg_s, data_EventIds_s
+entityMappings:
+- entityType: Account
+  fieldMappings:
+  - identifier: UPNSuffix
+    columnName: upn_suffix
+  - identifier: Name
+    columnName: account_name
+version: 1.0.0
+kind: Scheduled

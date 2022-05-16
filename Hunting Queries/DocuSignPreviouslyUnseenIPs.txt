@@ -1,0 +1,18 @@
+let starttime = todatetime('{{StartTimeISO}}');
+let endtime = todatetime('{{EndTimeISO}}');
+let lookback = starttime - 14d;
+let historicalActivity = 
+    DocuSignMonitor_CL
+    | where TimeGenerated between(lookback..starttime)
+    | where object_s == "Document"
+    | project TimeGenerated, timestamp_t, object_s, action_s, eventId_g, IPAddress, user_email_s
+    | summarize arg_max(timestamp_t, *) by eventId_g;
+let recentActivity = 
+    DocuSignMonitor_CL
+    | where TimeGenerated between(starttime..endtime)
+    | where object_s == "Document"
+    | project TimeGenerated, timestamp_t, object_s, action_s, eventId_g, IPAddress, user_email_s
+    | summarize arg_max(timestamp_t, *) by eventId_g;
+recentActivity | join kind= leftanti (
+   historicalActivity
+) on IPAddress

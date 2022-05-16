@@ -1,0 +1,923 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "functionAppName": {
+            "type": "string",
+            "defaultValue": "DSM",
+            "maxLength": 11,
+            "metadata": {
+                "description": "Name of the Azure Function app used to ingest events and alerts from the DocuSign Monitor API. This will be used to generate unique names for associated resources."
+            }
+        },
+        "docusignEnvironment": {
+            "type": "string",
+            "defaultValue": "PROD",
+            "metadata": {
+                "description": "String for the DocuSign environment (expects DEV or PROD)"
+            }
+        },
+        "docusignAccountID": {
+            "type": "string",
+            "metadata": {
+                "description": "GUID for the DocuSign eSign Account ID"
+            }
+        },
+        "docusignUserID": {
+            "type": "string",
+            "metadata": {
+                "description": "GUID for the DocuSign API user"
+            }
+        },
+        "docusignAppRedirectUrl": {
+            "type": "string",
+            "metadata": {
+                "description": "The redirect URL for your DocuSign integration"
+            }
+        },
+        "docusignIntegrationKey": {
+            "type": "securestring",
+            "metadata": {
+                "description": "GUID that identifies your DocuSign integration"
+            }
+        },
+        "docusignClientSecret": {
+            "type": "securestring",
+            "metadata": {
+                "description": "GUID that is used for authenticating your DocuSign integration with the DocuSign platform"
+            }
+        },
+        "logAnalyticsWorkspaceID": {
+            "type": "string",
+            "metadata": {
+                "description": "The Log Analytics Workspace ID, used to authenticate to the Log Analytics API"
+            }
+        },
+        "logAnalyticsWorkspaceKey": {
+            "type": "securestring",
+            "metadata": {
+                "description": "The Log Analytics Workspace primary key, used to authenticate to the Log Analytics API"
+            }
+        },
+        "logAnalyticsWorkspaceName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the Log Analytics Workspace used by Microsoft Sentinel."
+            }
+        }
+    },
+    "variables": {
+        "storageAccountName": "[format('{0}{1}', toLower(parameters('functionAppName')), uniqueString(resourceGroup().id))]",
+        "appServicePlanName": "[format('{0}-{1}', parameters('functionAppName'), uniqueString(resourceGroup().id))]",
+        "appInsightsName": "[format('{0}-{1}', parameters('functionAppName'), uniqueString(resourceGroup().id))]",
+        "functionAppName": "[format('{0}-{1}', parameters('functionAppName'), uniqueString(resourceGroup().id))]",
+        "keyVaultName": "[format('{0}-{1}', parameters('functionAppName'), uniqueString(resourceGroup().id))]",
+        "tableName": "DocuSignMonitor_CL",
+        "workbookContent": {
+            "version": "Notebook/1.0",
+            "items": [
+                {
+                    "type": 12,
+                    "content": {
+                        "version": "NotebookGroup/1.0",
+                        "groupType": "editable",
+                        "items": [
+                            {
+                                "type": 9,
+                                "content": {
+                                    "version": "KqlParameterItem/1.0",
+                                    "parameters": [
+                                        {
+                                            "id": "b585101e-64de-43a9-a6e2-29fc365019d6",
+                                            "version": "KqlParameterItem/1.0",
+                                            "name": "timerange",
+                                            "label": "Time Range",
+                                            "type": 4,
+                                            "isGlobal": true,
+                                            "value": {
+                                                "durationMs": 604800000
+                                            },
+                                            "typeSettings": {
+                                                "selectableValues": [
+                                                    {
+                                                        "durationMs": 14400000
+                                                    },
+                                                    {
+                                                        "durationMs": 43200000
+                                                    },
+                                                    {
+                                                        "durationMs": 86400000
+                                                    },
+                                                    {
+                                                        "durationMs": 172800000
+                                                    },
+                                                    {
+                                                        "durationMs": 604800000
+                                                    },
+                                                    {
+                                                        "durationMs": 2592000000
+                                                    }
+                                                ]
+                                            },
+                                            "timeContext": {
+                                                "durationMs": 86400000
+                                            }
+                                        }
+                                    ],
+                                    "style": "pills",
+                                    "queryType": 0,
+                                    "resourceType": "microsoft.operationalinsights/workspaces"
+                                },
+                                "name": "parameters - 0"
+                            },
+                            {
+                                "type": 11,
+                                "content": {
+                                    "version": "LinkItem/1.0",
+                                    "style": "tabs",
+                                    "links": [
+                                        {
+                                            "id": "8f5716d3-d47c-43fa-bf7c-18229dda7c89",
+                                            "cellValue": "EventType",
+                                            "linkTarget": "parameter",
+                                            "linkLabel": "Envelopes",
+                                            "subTarget": "Envelopes",
+                                            "style": "link"
+                                        },
+                                        {
+                                            "id": "89b2cd6e-cba0-4a50-9c96-ec3ef260c96d",
+                                            "cellValue": "EventType",
+                                            "linkTarget": "parameter",
+                                            "linkLabel": "Documents",
+                                            "subTarget": "Documents",
+                                            "style": "link"
+                                        },
+                                        {
+                                            "id": "63cbb902-3536-40fe-9b20-130883ef48fa",
+                                            "cellValue": "EventType",
+                                            "linkTarget": "parameter",
+                                            "linkLabel": "Alerts",
+                                            "subTarget": "Alerts",
+                                            "style": "link"
+                                        },
+                                        {
+                                            "id": "e9b4c5f7-db46-4cb9-9125-e86ca5f90634",
+                                            "cellValue": "EventType",
+                                            "linkTarget": "parameter",
+                                            "linkLabel": "Users",
+                                            "subTarget": "Users",
+                                            "style": "link"
+                                        }
+                                    ]
+                                },
+                                "name": "links - 1"
+                            }
+                        ],
+                        "exportParameters": true
+                    },
+                    "name": "group - 1"
+                },
+                {
+                    "type": 12,
+                    "content": {
+                        "version": "NotebookGroup/1.0",
+                        "groupType": "editable",
+                        "items": [
+                            {
+                                "type": 1,
+                                "content": {
+                                    "json": "# Envelope Events"
+                                },
+                                "name": "text - 0",
+                                "styleSettings": {
+                                    "padding": "5px"
+                                }
+                            },
+                            {
+                                "type": 3,
+                                "content": {
+                                    "version": "KqlItem/1.0",
+                                    "query": "DocuSignMonitor_CL \r\n| where object_s == \"Envelope\"\r\n| summarize count() by bin(timestamp_t, 1h), action_s",
+                                    "size": 0,
+                                    "title": "Envelope actions over time",
+                                    "timeContextFromParameter": "timerange",
+                                    "queryType": 0,
+                                    "resourceType": "microsoft.operationalinsights/workspaces",
+                                    "visualization": "linechart"
+                                },
+                                "customWidth": "50",
+                                "name": "query - 1"
+                            },
+                            {
+                                "type": 3,
+                                "content": {
+                                    "version": "KqlItem/1.0",
+                                    "query": "DocuSignMonitor_CL \r\n| where object_s == \"Envelope\"\r\n| summarize count() by ipAddressLocation_country_s",
+                                    "size": 2,
+                                    "title": "Envelope actions by country",
+                                    "timeContextFromParameter": "timerange",
+                                    "queryType": 0,
+                                    "resourceType": "microsoft.operationalinsights/workspaces",
+                                    "visualization": "map",
+                                    "mapSettings": {
+                                        "locInfo": "CountryRegion",
+                                        "locInfoColumn": "ipAddressLocation_country_s",
+                                        "sizeSettings": "count_",
+                                        "sizeAggregation": "Sum",
+                                        "legendMetric": "count_",
+                                        "legendAggregation": "Sum",
+                                        "itemColorSettings": {
+                                            "nodeColorField": "count_",
+                                            "colorAggregation": "Sum",
+                                            "type": "heatmap",
+                                            "heatmapPalette": "redGreen"
+                                        }
+                                    }
+                                },
+                                "customWidth": "50",
+                                "name": "query - 2"
+                            }
+                        ]
+                    },
+                    "conditionalVisibility": {
+                        "parameterName": "EventType",
+                        "comparison": "isEqualTo",
+                        "value": "Envelopes"
+                    },
+                    "name": "envelopes group",
+                    "styleSettings": {
+                        "showBorder": true
+                    }
+                },
+                {
+                    "type": 12,
+                    "content": {
+                        "version": "NotebookGroup/1.0",
+                        "groupType": "editable",
+                        "items": [
+                            {
+                                "type": 1,
+                                "content": {
+                                    "json": "# Document Events"
+                                },
+                                "name": "text - 0"
+                            },
+                            {
+                                "type": 3,
+                                "content": {
+                                    "version": "KqlItem/1.0",
+                                    "query": "DocuSignMonitor_CL \r\n| where object_s == \"Document\"\r\n| summarize count() by bin(timestamp_t, 1h), action_s",
+                                    "size": 0,
+                                    "title": "Document actions over time",
+                                    "timeContextFromParameter": "timerange",
+                                    "queryType": 0,
+                                    "resourceType": "microsoft.operationalinsights/workspaces",
+                                    "visualization": "linechart"
+                                },
+                                "customWidth": "50",
+                                "name": "query - 1"
+                            },
+                            {
+                                "type": 3,
+                                "content": {
+                                    "version": "KqlItem/1.0",
+                                    "query": "DocuSignMonitor_CL \r\n| where object_s == \"Document\"\r\n| where action_s == \"Downloaded\"\r\n| summarize count() by ipAddressLocation_country_s",
+                                    "size": 2,
+                                    "title": "Downloaded documents by country",
+                                    "timeContextFromParameter": "timerange",
+                                    "queryType": 0,
+                                    "resourceType": "microsoft.operationalinsights/workspaces",
+                                    "visualization": "map",
+                                    "mapSettings": {
+                                        "locInfo": "CountryRegion",
+                                        "locInfoColumn": "ipAddressLocation_country_s",
+                                        "sizeSettings": "count_",
+                                        "sizeAggregation": "Sum",
+                                        "legendMetric": "count_",
+                                        "legendAggregation": "Sum",
+                                        "itemColorSettings": {
+                                            "nodeColorField": "count_",
+                                            "colorAggregation": "Sum",
+                                            "type": "heatmap",
+                                            "heatmapPalette": "redGreen"
+                                        }
+                                    }
+                                },
+                                "customWidth": "50",
+                                "name": "query - 2"
+                            }
+                        ]
+                    },
+                    "conditionalVisibility": {
+                        "parameterName": "EventType",
+                        "comparison": "isEqualTo",
+                        "value": "Documents"
+                    },
+                    "name": "documents group",
+                    "styleSettings": {
+                        "showBorder": true
+                    }
+                },
+                {
+                    "type": 12,
+                    "content": {
+                        "version": "NotebookGroup/1.0",
+                        "groupType": "editable",
+                        "items": [
+                            {
+                                "type": 1,
+                                "content": {
+                                    "json": "# Alerts"
+                                },
+                                "name": "text - 1"
+                            },
+                            {
+                                "type": 3,
+                                "content": {
+                                    "version": "KqlItem/1.0",
+                                    "query": "DocuSignMonitor_CL \r\n| where object_s == \"Alert\"\r\n| summarize arg_max(timestamp_t, *) by eventId_g\r\n| summarize count() by bin(timestamp_t, 1h), action_s",
+                                    "size": 0,
+                                    "title": "Alerts over time",
+                                    "timeContextFromParameter": "timerange",
+                                    "queryType": 0,
+                                    "resourceType": "microsoft.operationalinsights/workspaces",
+                                    "visualization": "linechart"
+                                },
+                                "customWidth": "50",
+                                "name": "query - 0"
+                            },
+                            {
+                                "type": 3,
+                                "content": {
+                                    "version": "KqlItem/1.0",
+                                    "query": "DocuSignMonitor_CL \r\n| where object_s == \"Alert\"\r\n| summarize arg_max(timestamp_t, *) by eventId_g, user_email_s\r\n| summarize count() by user_email_s\r\n| top 10 by count_",
+                                    "size": 0,
+                                    "queryType": 0,
+                                    "resourceType": "microsoft.operationalinsights/workspaces"
+                                },
+                                "customWidth": "50",
+                                "name": "query - 4"
+                            }
+                        ]
+                    },
+                    "conditionalVisibility": {
+                        "parameterName": "EventType",
+                        "comparison": "isEqualTo",
+                        "value": "Alerts"
+                    },
+                    "name": "alerts group",
+                    "styleSettings": {
+                        "showBorder": true
+                    }
+                },
+                {
+                    "type": 12,
+                    "content": {
+                        "version": "NotebookGroup/1.0",
+                        "groupType": "editable",
+                        "items": [
+                            {
+                                "type": 1,
+                                "content": {
+                                    "json": "# Users"
+                                },
+                                "name": "text - 1"
+                            },
+                            {
+                                "type": 9,
+                                "content": {
+                                    "version": "KqlParameterItem/1.0",
+                                    "parameters": [
+                                        {
+                                            "id": "51339926-2c0b-4003-a005-37beeaa433e0",
+                                            "version": "KqlParameterItem/1.0",
+                                            "name": "UPN",
+                                            "type": 1,
+                                            "description": "Search by User Principal Name",
+                                            "value": "",
+                                            "timeContext": {
+                                                "durationMs": 86400000
+                                            }
+                                        }
+                                    ],
+                                    "style": "pills",
+                                    "queryType": 0,
+                                    "resourceType": "microsoft.operationalinsights/workspaces"
+                                },
+                                "name": "parameters - 1"
+                            },
+                            {
+                                "type": 3,
+                                "content": {
+                                    "version": "KqlItem/1.0",
+                                    "query": "DocuSignMonitor_CL\r\n| where user_email_s contains \"{UPN}\"\r\n| where object_s == \"Document\" or object_s == \"Envelope\"\r\n| project TimeGenerated, timestamp_t, object_s, action_s, eventId_g\r\n| summarize arg_max(timestamp_t, *) by eventId_g\r\n| summarize count() by bin(TimeGenerated, 1d), action_s",
+                                    "size": 0,
+                                    "title": "User Activities over Time",
+                                    "timeContextFromParameter": "timerange",
+                                    "queryType": 0,
+                                    "resourceType": "microsoft.operationalinsights/workspaces",
+                                    "visualization": "linechart",
+                                    "chartSettings": {
+                                        "showLegend": true,
+                                        "showDataPoints": true
+                                    }
+                                },
+                                "customWidth": "50",
+                                "name": "query - 2"
+                            },
+                            {
+                                "type": 3,
+                                "content": {
+                                    "version": "KqlItem/1.0",
+                                    "query": "DocuSignMonitor_CL\r\n| where user_email_s contains \"{UPN}\"\r\n| where object_s == \"Alert\"\r\n| summarize arg_max(TimeGenerated, *) by eventId_g\r\n| project TimeGenerated, user_email_s, eventId_g, action_s",
+                                    "size": 0,
+                                    "title": "Alerts Generated for User",
+                                    "timeContextFromParameter": "timerange",
+                                    "queryType": 0,
+                                    "resourceType": "microsoft.operationalinsights/workspaces",
+                                    "gridSettings": {
+                                        "sortBy": [
+                                            {
+                                                "itemKey": "TimeGenerated",
+                                                "sortOrder": 1
+                                            }
+                                        ]
+                                    },
+                                    "sortBy": [
+                                        {
+                                            "itemKey": "TimeGenerated",
+                                            "sortOrder": 1
+                                        }
+                                    ]
+                                },
+                                "customWidth": "50",
+                                "name": "query - 3"
+                            }
+                        ]
+                    },
+                    "conditionalVisibility": {
+                        "parameterName": "EventType",
+                        "comparison": "isEqualTo",
+                        "value": "Users"
+                    },
+                    "name": "users group",
+                    "styleSettings": {
+                        "showBorder": true
+                    }
+                }
+            ],
+            "isLocked": false,
+            "fromTemplateId": "sentinel-UserWorkbook"
+        }
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2021-08-01",
+            "name": "[variables('storageAccountName')]",
+            "location": "[resourceGroup().location]",
+            "sku": {
+                "name": "Standard_LRS"
+            },
+            "kind": "StorageV2",
+            "properties": {
+                "supportHttpsTrafficonly": true,
+                "encryption": {
+                    "services": {
+                        "file": {
+                            "keyType": "Account",
+                            "enabled": true
+                        },
+                        "blob": {
+                            "keyType": "Account",
+                            "enabled": true
+                        }
+                    },
+                    "keySource": "Microsoft.Storage"
+                },
+                "accessTier": "Hot"
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/blobServices",
+            "apiVersion": "2019-06-01",
+            "name": "[concat(variables('storageAccountName'), '/default')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', tolower(variables('storageAccountName')))]"
+            ],
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "properties": {
+                "cors": {
+                    "corsRules": []
+                },
+                "deleteRetentionPolicy": {
+                    "enabled": false
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/fileServices",
+            "apiVersion": "2019-06-01",
+            "name": "[concat(variables('storageAccountName'), '/default')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', tolower(variables('storageAccountName')))]"
+            ],
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "properties": {
+                "cors": {
+                    "corsRules": []
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+            "apiVersion": "2019-06-01",
+            "name": "[concat(variables('storageAccountName'), '/default/azure-webjobs-hosts')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/blobServices', variables('storageAccountName'), 'default')]",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+            ],
+            "properties": {
+                "publicAccess": "None"
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+            "apiVersion": "2019-06-01",
+            "name": "[concat(variables('storageAccountName'), '/default/azure-webjobs-secrets')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/blobServices', variables('storageAccountName'), 'default')]",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+            ],
+            "properties": {
+                "publicAccess": "None"
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
+            "apiVersion": "2019-06-01",
+            "name": "[concat(variables('storageAccountName'), '/default/', tolower(variables('storageAccountName')))]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/fileServices', variables('storageAccountName'), 'default')]",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+            ],
+            "properties": {
+                "shareQuota": 5120
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
+            "apiVersion": "2019-06-01",
+            "name": "[concat(variables('storageAccountName'), '/default/', 'funcstatemarkershare')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/fileServices', variables('storageAccountName'), 'default')]",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+            ],
+            "properties": {
+                "shareQuota": 5120
+            }
+        },
+        {
+            "type": "Microsoft.Insights/components",
+            "apiVersion": "2020-02-02",
+            "name": "[variables('appInsightsName')]",
+            "location": "[resourceGroup().location]",
+            "kind": "web",
+            "properties": {
+                "Application_Type": "web",
+                "publicNetworkAccessForIngestion": "Enabled",
+                "publicNetworkAccessForQuery": "Enabled"
+            },
+            "tags": {
+                "[format('hidden-link:/subscriptions/{0}/resourceGroups/{1}/providers/Microsoft.Web/sites/{2}', subscription().id, resourceGroup().name, variables('functionAppName'))]": "Resource"
+            }
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults",
+            "apiVersion": "2021-11-01-preview",
+            "name": "[variables('keyVaultName')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "tenantId": "[subscription().tenantId]",
+                "enableRbacAuthorization": true,
+                "sku": {
+                    "family": "A",
+                    "name": "standard"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults/secrets",
+            "apiVersion": "2021-11-01-preview",
+            "name": "[format('{0}/docusignPrivateKey', variables('keyVaultName'))]",
+            "properties": {
+                "value": ""
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults/secrets",
+            "apiVersion": "2021-11-01-preview",
+            "name": "[format('{0}/docusignIntegrationKey', variables('keyVaultName'))]",
+            "properties": {
+                "value": "[parameters('docusignIntegrationKey')]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults/secrets",
+            "apiVersion": "2021-11-01-preview",
+            "name": "[format('{0}/docusignClientSecret', variables('keyVaultName'))]",
+            "properties": {
+                "value": "[parameters('docusignClientSecret')]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults/secrets",
+            "apiVersion": "2021-11-01-preview",
+            "name": "[format('{0}/docusignUserID', variables('keyVaultName'))]",
+            "properties": {
+                "value": "[parameters('docusignUserID')]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults/secrets",
+            "apiVersion": "2021-11-01-preview",
+            "name": "[format('{0}/docusignAccountID', variables('keyVaultName'))]",
+            "properties": {
+                "value": "[parameters('docusignAccountID')]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults/secrets",
+            "apiVersion": "2021-11-01-preview",
+            "name": "[format('{0}/docusignAppRedirectUrl', variables('keyVaultName'))]",
+            "properties": {
+                "value": "[parameters('docusignAppRedirectUrl')]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults/secrets",
+            "apiVersion": "2021-11-01-preview",
+            "name": "[format('{0}/workspaceKey', variables('keyVaultName'))]",
+            "properties": {
+                "value": "[parameters('logAnalyticsWorkspaceKey')]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Web/sites",
+            "apiVersion": "2021-03-01",
+            "name": "[variables('functionAppName')]",
+            "location": "[resourceGroup().location]",
+            "kind": "functionapp,linux",
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "properties": {
+                "httpsOnly": true,
+                "reserved": true,
+                "siteConfig": {
+                    "linuxFxVersion": "python|3.8"
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Web/sites/config",
+            "apiVersion": "2018-11-01",
+            "name": "[format('{0}/appsettings', variables('functionAppName'))]",
+            "properties": {
+                "AzureWebJobsStorage": "[format('DefaultEndpointsProtocol=https;AccountName={0};EndpointSuffix={1};AccountKey={2}', variables('storageAccountName'), environment().suffixes.storage, listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2021-08-01').keys[0].value)]",
+                "APPINSIGHTS_INSTRUMENTATIONKEY": "[reference(resourceId('Microsoft.Insights/components', variables('appInsightsName'))).InstrumentationKey]",
+                "APPLICATIONINSIGHTS_CONNECTION_STRING": "[format('InstrumentationKey={0}', reference(resourceId('Microsoft.Insights/components', variables('appInsightsName'))).InstrumentationKey)]",
+                "FUNCTIONS_WORKER_RUNTIME": "python",
+                "FUNCTIONS_EXTENSION_VERSION": "~4",
+                "ds_environment": "[parameters('docusignEnvironment')]",
+                "ds_account_id": "[format('@Microsoft.KeyVault(SecretUri={0})', reference(resourceId('Microsoft.KeyVault/vaults/secrets', split(format('{0}/docusignAccountID', variables('keyVaultName')), '/')[0], split(format('{0}/docusignAccountID', variables('keyVaultName')), '/')[1])).secretUri)]",
+                "ds_app_redirect": "[format('@Microsoft.KeyVault(SecretUri={0})', reference(resourceId('Microsoft.KeyVault/vaults/secrets', split(format('{0}/docusignAppRedirectUrl', variables('keyVaultName')), '/')[0], split(format('{0}/docusignAppRedirectUrl', variables('keyVaultName')), '/')[1])).secretUri)]",
+                "ds_client_secret": "[format('@Microsoft.KeyVault(SecretUri={0})', reference(resourceId('Microsoft.KeyVault/vaults/secrets', split(format('{0}/docusignClientSecret', variables('keyVaultName')), '/')[0], split(format('{0}/docusignClientSecret', variables('keyVaultName')), '/')[1])).secretUri)]",
+                "ds_integration_key": "[format('@Microsoft.KeyVault(SecretUri={0})', reference(resourceId('Microsoft.KeyVault/vaults/secrets', split(format('{0}/docusignIntegrationKey', variables('keyVaultName')), '/')[0], split(format('{0}/docusignIntegrationKey', variables('keyVaultName')), '/')[1])).secretUri)]",
+                "ds_impersonated_user": "[parameters('docusignUserID')]",
+                "KVName": "[variables('keyVaultName')]",
+                "privkey_name": "docusignPrivateKey",
+                "WorkspaceID": "[parameters('logAnalyticsWorkspaceID')]",
+                "WorkspaceKey": "[format('@Microsoft.KeyVault(SecretUri={0})', reference(resourceId('Microsoft.KeyVault/vaults/secrets', split(format('{0}/workspaceKey', variables('keyVaultName')), '/')[0], split(format('{0}/workspaceKey', variables('keyVaultName')), '/')[1])).secretUri)]",
+                "WEBSITE_RUN_FROM_PACKAGE": "https://github.com/h0ffayyy/DocuSignMonitor-MicrosoftSentinel/raw/master/Data_Connector/DocuSignMonitor-functionapp.zip"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]",
+                "[resourceId('Microsoft.Web/sites', variables('functionAppName'))]",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
+                "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
+                "[resourceId('Microsoft.KeyVault/vaults/secrets', split(format('{0}/docusignClientSecret', variables('keyVaultName')), '/')[0], split(format('{0}/docusignClientSecret', variables('keyVaultName')), '/')[1])]",
+                "[resourceId('Microsoft.KeyVault/vaults/secrets', split(format('{0}/workspaceKey', variables('keyVaultName')), '/')[0], split(format('{0}/workspaceKey', variables('keyVaultName')), '/')[1])]"
+            ]
+        },
+        {
+            "type": "Microsoft.Authorization/roleAssignments",
+            "apiVersion": "2020-10-01-preview",
+            "scope": "[format('Microsoft.KeyVault/vaults/{0}', variables('keyVaultName'))]",
+            "name": "[guid(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), resourceGroup().id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6'))]",
+            "properties": {
+                "description": "[format('Role required for {0} to access secrets in {1}', variables('functionAppName'), variables('keyVaultName'))]",
+                "principalId": "[reference(resourceId('Microsoft.Web/sites', variables('functionAppName')), '2021-03-01', 'full').identity.principalId]",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')]",
+                "principalType": "ServicePrincipal"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', variables('functionAppName'))]",
+                "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Insights/workbooks",
+            "apiVersion": "2021-08-01",
+            "name": "[guid('DocuSign Monitor', resourceGroup().id)]",
+            "location": "[resourceGroup().location]",
+            "kind": "shared",
+            "properties": {
+                "category": "sentinel",
+                "description": "Workbook that visualizes activity within the DocuSign organization and accounts",
+                "displayName": "DocuSign Monitor",
+                "serializedData": "[string(variables('workbookContent'))]",
+                "sourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName'))]",
+                "version": "Notebook/1.0"
+            }
+        },
+        {
+            "type": "Microsoft.SecurityInsights/alertRules",
+            "apiVersion": "2021-09-01-preview",
+            "scope": "[format('Microsoft.OperationalInsights/workspaces/{0}', parameters('logAnalyticsWorkspaceName'))]",
+            "name": "DocuSign: Unusual Document Download Volume",
+            "kind": "Scheduled",
+            "properties": {
+                "displayName": "DocuSign: Unusual Document Download Volume",
+                "description": "This query identifies alerts triggered by DocuSign when an unusual volume of documents have been downloaded by a user. The alert is generated when a user downloads 20 or more documents in an hour and where this volume is greater than normal for the selected user.",
+                "severity": "Low",
+                "enabled": false,
+                "query": "DocuSignMonitor_CL\r\n| where object_s == \"Alert\"\r\n| extend account_name = split(user_email_s, \"@\")[0]\r\n| extend upn_suffix = split(user_email_s, \"@\")[1]\r\n| project TimeGenerated, timestamp_t, data_Count_s, data_Avg_s, eventId_g, action_s, user_email_s, account_name, upn_suffix",
+                "queryFrequency": "PT30M",
+                "queryPeriod": "PT30M",
+                "triggerOperator": "GreaterThan",
+                "triggerThreshold": 0,
+                "suppressionDuration": "PT5H",
+                "suppressionEnabled": false,
+                "tactics": [
+                    "Exfiltration"
+                ],
+                "techniques": [
+                    "T1567"
+                ],
+                "alertRuleTemplateName": null,
+                "incidentConfiguration": {
+                    "createIncident": false,
+                    "groupingConfiguration": {
+                        "enabled": false,
+                        "reopenClosedIncident": false,
+                        "lookbackDuration": "PT5H",
+                        "matchingMethod": "AllEntities",
+                        "groupByEntities": [],
+                        "groupByAlertDetails": [],
+                        "groupByCustomDetails": []
+                    }
+                },
+                "eventGroupingSettings": {
+                    "aggregationKind": "AlertPerResult"
+                },
+                "alertDetailsOverride": {
+                    "alertDisplayNameFormat": null,
+                    "alertDescriptionFormat": "\"TooManyDocumentsDownloaded\" alert triggered for {{user_email_s}}. {{data_Count_s}} documents were downloaded. Their average download volume is {{data_Avg_s}}.",
+                    "alertTacticsColumnName": null,
+                    "alertSeverityColumnName": null
+                },
+                "customDetails": null,
+                "entityMappings": [
+                    {
+                        "entityType": "Account",
+                        "fieldMappings": [
+                            {
+                                "identifier": "UPNSuffix",
+                                "columnName": "upn_suffix"
+                            },
+                            {
+                                "identifier": "Name",
+                                "columnName": "account_name"
+                            }
+                        ]
+                    }
+                ],
+                "sentinelEntitiesMappings": null
+            }
+        },
+        {
+            "type": "Microsoft.SecurityInsights/alertRules",
+            "apiVersion": "2021-09-01-preview",
+            "scope": "[format('Microsoft.OperationalInsights/workspaces/{0}', parameters('logAnalyticsWorkspaceName'))]",
+            "name": "DocuSign: Unusual volume of envelopes deleted",
+            "kind": "Scheduled",
+            "properties": {
+                "displayName": "DocuSign: Unusual volume of envelopes deleted",
+                "description": "This query identifies alerts triggered by DocuSign when an unusual volume of documents have been deleted by a user. The alert is generated when a user deletes 20 or more documents in an hour and where this volume is greater than normal for the selected user.\n",
+                "severity": "Medium",
+                "enabled": false,
+                "query": "DocuSignMonitor_CL\r\n| where object_s == \"Alert\"\r\n| where action_s == \"TooManyEnvelopesDeleted\"\r\n| extend account_name = split(user_email_s, \"@\")[0]\r\n| extend upn_suffix = split(user_email_s, \"@\")[1]\r\n| project TimeGenerated, timestamp_t, action_s, user_email_s, account_name, upn_suffix, data_Count_s, data_Avg_s, data_EventIds_s",
+                "queryFrequency": "PT30M",
+                "queryPeriod": "PT30M",
+                "triggerOperator": "GreaterThan",
+                "triggerThreshold": 0,
+                "suppressionDuration": "PT5H",
+                "suppressionEnabled": false,
+                "tactics": [
+                    "Impact"
+                ],
+                "techniques": [
+                    "T1485"
+                ],
+                "alertRuleTemplateName": null,
+                "incidentConfiguration": {
+                    "createIncident": false,
+                    "groupingConfiguration": {
+                        "enabled": false,
+                        "reopenClosedIncident": false,
+                        "lookbackDuration": "PT5H",
+                        "matchingMethod": "AllEntities",
+                        "groupByEntities": [],
+                        "groupByAlertDetails": [],
+                        "groupByCustomDetails": []
+                    }
+                },
+                "eventGroupingSettings": {
+                    "aggregationKind": "AlertPerResult"
+                },
+                "alertDetailsOverride": {
+                    "alertDisplayNameFormat": null,
+                    "alertDescriptionFormat": "\"TooManyEnvelopesDeleted\" alert triggered for {{user_email_s}}. {{data_Count_s}} documents were downloaded. Their average download volume is {{data_Avg_s}}.",
+                    "alertTacticsColumnName": null,
+                    "alertSeverityColumnName": null
+                },
+                "customDetails": null,
+                "entityMappings": [
+                    {
+                        "entityType": "Account",
+                        "fieldMappings": [
+                            {
+                                "identifier": "UPNSuffix",
+                                "columnName": "upn_suffix"
+                            },
+                            {
+                                "identifier": "Name",
+                                "columnName": "account_name"
+                            }
+                        ]
+                    }
+                ],
+                "sentinelEntitiesMappings": null
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/savedSearches",
+            "apiVersion": "2020-08-01",
+            "name": "[format('{0}/{1}', parameters('logAnalyticsWorkspaceName'), 'DocuSign: Activity from Previously Unseen IPs')]",
+            "properties": {
+                "etag": "*",
+                "category": "Hunting Queries",
+                "displayName": "DocuSign: Activity from Previously Unseen IPs",
+                "query": "let starttime = todatetime('{{StartTimeISO}}');\r\nlet endtime = todatetime('{{EndTimeISO}}');\r\nlet lookback = starttime - 14d;\r\nlet historicalActivity =     DocuSignMonitor_CL    \r\n| where TimeGenerated between(lookback..starttime)    \r\n| where object_s == 'Document'    \r\n| project TimeGenerated, timestamp_t, object_s, action_s, eventId_g, IPAddress, user_email_s    \r\n| summarize arg_max(timestamp_t, *) by eventId_g;\r\nlet recentActivity =     \r\nDocuSignMonitor_CL    \r\n| where TimeGenerated between(starttime..endtime)    \r\n| where object_s == 'Document'    \r\n| project TimeGenerated, timestamp_t, object_s, action_s, eventId_g, IPAddress, user_email_s    \r\n| summarize arg_max(timestamp_t, *) by eventId_g;\r\nrecentActivity | join kind= leftanti (  \r\n historicalActivity) on IPAddress| extend IP_0_Address = IPAddress",
+                "version": 2,
+                "tags": [
+                    {
+                        "name": "description",
+                        "value": "This query checks historical user document activity within DocuSign for any previously unseen IP addresses"
+                    }
+                ]
+            }
+        }
+    ]
+}
